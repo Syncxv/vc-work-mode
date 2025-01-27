@@ -23,6 +23,26 @@ export let _forceUpdate = () => {
     forceUpdate();
 };
 
+interface GuildRoot {
+    type: "guild";
+    id: string;
+    parentId: any;
+    unavailable: boolean;
+    children: GuildRoot[];
+}
+
+interface FolderRoot {
+    type: "folder";
+    id: number;
+    parentId: any;
+    name: string;
+    color: number;
+    expanded: boolean;
+    children: GuildRoot[];
+}
+
+type SidebarRoot = GuildRoot | FolderRoot;
+
 export default definePlugin({
     name: "WorkMode",
     authors: [Devs.Aria],
@@ -34,13 +54,17 @@ export default definePlugin({
         {
             find: "(\"guildsnav\")",
             replacement: [
+                // {
+                //     match: /case .+?\.GUILD:return/,
+                //     replace: "$& $self.isEnabled() && $self.isNotWorkModeId(arguments[0].id) ? null : "
+                // },
+                // {
+                //     match: /case .+?\.FOLDER:return/,
+                //     replace: "$& $self.isEnabled() && $self.shouldRenderFolder(arguments[0]) ? null : "
+                // },
                 {
-                    match: /case .+?\.GUILD:return/,
-                    replace: "$& $self.isEnabled() && $self.isNotWorkModeId(arguments[0].id) ? null : "
-                },
-                {
-                    match: /case .+?\.FOLDER:return/,
-                    replace: "$& $self.isEnabled() && $self.shouldRenderFolder(arguments[0]) ? null : "
+                    match: /(?<=\i=)\i\.getRoots\(\)/,
+                    replace: "$self.filterRoots($&)"
                 },
                 // {
                 //     match: /\i\.\i\.getGuildsTree\(\)/,
@@ -131,12 +155,34 @@ export default definePlugin({
         this.guildBarForceUpdate = guildBarForceUpdate = v;
     },
 
+    filterRoots(roots: SidebarRoot[]) {
+        if (!this.isEnabled()) return roots;
 
-    shouldRenderFolder(arg: { children: { id: string; }[]; }) {
-        return !arg?.children?.some(child => this.isWorkModeId(child.id));
+        return roots.map(originalRoot => {
+            const clonedRoot = { ...originalRoot };
+
+            if (clonedRoot.children) {
+                clonedRoot.children = clonedRoot.children.filter(child =>
+                    this.isWorkModeId(child.id)
+                );
+            }
+
+            return clonedRoot;
+        }).filter(clonedRoot => {
+            if (clonedRoot.type === "guild") {
+                return this.isWorkModeId(clonedRoot.id);
+            }
+            if (this.shouldRenderFolder(clonedRoot)) {
+                return true;
+            }
+            return false;
+        });
     },
 
 
+    shouldRenderFolder(arg: FolderRoot) {
+        return arg?.children?.some(child => this.isWorkModeId(child.id));
+    },
 
     handleNotification(user: User, channel: Channel) {
         if (!this.isEnabled()) return false;
