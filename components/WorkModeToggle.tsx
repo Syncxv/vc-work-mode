@@ -9,46 +9,30 @@ const HeaderBarIcon = LazyComponent(() => {
     return find(m => m.Icon && filter(m.Icon)).Icon;
 });
 
-function Icon({ enabled, size = "24", tooltipProps = {} }: { enabled?: boolean; size?: string, tooltipProps?: any; }) {
+export function SuitcaseIcon({ enabled, size = "24", tooltipProps = {} }: { enabled?: boolean; size?: string, tooltipProps?: any; }) {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"
             width={size}
             height={size}
-            viewBox="0 0 256 256"
+            viewBox="0 0 24 24"
             fill={enabled ? "currentColor" : "none"}
             stroke="currentColor"
             {...tooltipProps}
         >
             {enabled ?
-                (
-                    <path
-                        fillRule="evenodd"
-                        clipRule="evenodd"
-                        fill="currentColor"
-                        d="M152,112a8,8,0,0,1-8,8H112a8,8,0,0,1,0-16h32A8,8,0,0,1,152,112Zm80-40V200a16,16,0,0,1-16,16H40a16,16,0,0,1-16-16V72A16,16,0,0,1,40,56H80V48a24,24,0,0,1,24-24h48a24,24,0,0,1,24,24v8h40A16,16,0,0,1,232,72ZM96,56h64V48a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8Zm120,57.61V72H40v41.61A184,184,0,0,0,128,136,184,184,0,0,0,216,113.61Z">
-                    </path>
-                ) :
-                (
-                    <path
-                        fillRule="evenodd"
-                        clipRule="evenodd"
-                        fill="currentColor"
-                        d="M216,56H176V48a24,24,0,0,0-24-24H104A24,24,0,0,0,80,48v8H40A16,16,0,0,0,24,72V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V72A16,16,0,0,0,216,56ZM96,48a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96ZM216,72v41.61A184,184,0,0,1,128,136a184.07,184.07,0,0,1-88-22.38V72Zm0,128H40V131.64A200.19,200.19,0,0,0,128,152a200.25,200.25,0,0,0,88-20.37V200ZM104,112a8,8,0,0,1,8-8h32a8,8,0,0,1,0,16H112A8,8,0,0,1,104,112Z"
-                    >
-                    </path>
-                )
-            }
+                <path fill="currentColor" d="M14 2a3 3 0 0 1 3 3v1h2a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3h2V5a3 3 0 0 1 3-3zm0 2h-4a1 1 0 0 0-1 1v1h6V5a1 1 0 0 0-1-1"></path>
+                : <path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zm5-2V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>}
         </svg>
     );
 }
 
-export function WorkModeIcon({ text }: { text: string; }) {
+export function WorkModeIcon({ text, size }: { text: string; size?: string; }) {
     return (
         <div style={{ marginLeft: "4px" }}>
             <Tooltip text={text}>
                 {(props) => (
-                    <Icon enabled={false} size="20" tooltipProps={props} />
+                    <SuitcaseIcon enabled={false} size={size ?? "20"} tooltipProps={props} />
                 )}
             </Tooltip>
         </div>
@@ -63,7 +47,7 @@ export function WorkModeToggle() {
             className="vc-work-toolbox-btn"
             onClick={toggleWorkMode}
             tooltip={enabled ? "Disable Work Mode" : "Enable Work Mode"}
-            icon={() => <Icon enabled={enabled} size="26" />}
+            icon={() => <SuitcaseIcon enabled={enabled} size="26" />}
         />
     );
 }

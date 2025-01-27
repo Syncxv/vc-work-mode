@@ -11,15 +11,19 @@ import { removeContextMenuBindings, setupContextMenuPatches } from "./contextMen
 import { settings, toggleWorkMode, isEnabled, isNotWorkModeId, isWorkModeId } from "./settings";
 import { isPinned } from "plugins/pinDms/data";
 import { forceUpdate } from "plugins/pinDms";
-import { Channel, User } from "discord-types/general";
+import { Channel, Guild, User } from "discord-types/general";
 import ErrorBoundary from "@components/ErrorBoundary";
-import { WorkModeIcon, WorkModeToggle } from "./components/WorkModeToggle";
+import { SuitcaseIcon, WorkModeIcon, WorkModeToggle } from "./components/WorkModeToggle";
 import './styles.css';
 import { addDecorator, removeDecorator } from "@api/MemberListDecorators";
+import { React, Text, Tooltip } from "@webpack/common";
+import { Flex } from "@components/Flex";
 
 export let guildBarForceUpdate: () => void = () => { };
+export let guildAvatarForceUpdate: () => void = () => { };
 export let _forceUpdate = () => {
     guildBarForceUpdate();
+    guildAvatarForceUpdate();
     forceUpdate();
 };
 
@@ -28,7 +32,7 @@ interface GuildRoot {
     id: string;
     parentId: any;
     unavailable: boolean;
-    children: GuildRoot[];
+    children: GuildRoot[]; // probably. always empty
 }
 
 interface FolderRoot {
@@ -62,6 +66,7 @@ export default definePlugin({
                 //     match: /case .+?\.FOLDER:return/,
                 //     replace: "$& $self.isEnabled() && $self.shouldRenderFolder(arguments[0]) ? null : "
                 // },
+                // probably a better way to do this
                 {
                     match: /(?<=\i=)\i\.getRoots\(\)/,
                     replace: "$self.filterRoots($&)"
@@ -122,12 +127,40 @@ export default definePlugin({
                 replace: "$self.addIconToToolBar(arguments[0]);$&"
             }
         },
+        {
+            find: "\"GuildItem\"",
+            replacement: [
+                {
+                    match: /(?<=upperBadge:)\i/,
+                    replace: "$self.WrapUpperBadge($&, arguments[0]?.guild?.id)"
+                },
+                {
+                    match: /(?<=function\(\i\){).{1,100}guildNode/,
+                    replace: "let forceUpdate = Vencord.Util.useForceUpdater();$self._guildAvatarForceUpdate=forceUpdate;$&"
+                }
+            ]
+        },
+        {
+            find: ".invitesDisabledTooltip",
+            replacement: {
+                match: /#{intl::VIEW_AS_ROLES_MENTIONS_WARNING}.{0,100}(?=])/,
+                replace: "$&,$self.renderTooltip(arguments[0].guild)"
+            }
+        }
     ],
 
     _forceUpdate,
     isEnabled,
     isWorkModeId,
     isNotWorkModeId,
+
+    set _guildBarForceUpdate(v: any) {
+        this.guildBarForceUpdate = guildBarForceUpdate = v;
+    },
+
+    set _guildAvatarForceUpdate(v: any) {
+        this.guildAvatarForceUpdate = guildAvatarForceUpdate = v;
+    },
 
     toolboxActions: {
         "Work Mode Toggle"() {
@@ -151,9 +184,6 @@ export default definePlugin({
         ];
     },
 
-    set _guildBarForceUpdate(v: any) {
-        this.guildBarForceUpdate = guildBarForceUpdate = v;
-    },
 
     filterRoots(roots: SidebarRoot[]) {
         if (!this.isEnabled()) return roots;
@@ -169,13 +199,10 @@ export default definePlugin({
 
             return clonedRoot;
         }).filter(clonedRoot => {
-            if (clonedRoot.type === "guild") {
+            if (clonedRoot.type === "guild")
                 return this.isWorkModeId(clonedRoot.id);
-            }
-            if (this.shouldRenderFolder(clonedRoot)) {
-                return true;
-            }
-            return false;
+
+            return this.shouldRenderFolder(clonedRoot);
         });
     },
 
@@ -220,6 +247,47 @@ export default definePlugin({
         return channelsCopy;
     },
 
+    WrapUpperBadge(original?: { props: { icon: Function; }; }, id?: string) {
+        if (!id || this.isNotWorkModeId(id)) return original;
+
+        return (
+            <div className="vc-icon-badge">
+                <SuitcaseIcon enabled={true} size="12" />
+            </div>
+        );
+
+        // if (!original)
+        //     return (
+        //         <SuitcaseIcon enabled={false} size="12" />
+        //     );
+
+        // const OriginalIcon = (original as any)?.props.icon;
+
+        // function Icon(props: any) {
+        //     return (
+        //         <React.Fragment>
+        //             <OriginalIcon {...props} />
+        //             <SuitcaseIcon enabled={false} size="24" tooltipProps={props} />
+        //         </React.Fragment>
+        //     );
+        // }
+
+        // original.props.icon = Icon;
+
+        // return original;
+    },
+
+    renderTooltip: ErrorBoundary.wrap((guild: Guild) => {
+        if (!guild || isNotWorkModeId(guild.id)) return null;
+
+        return (
+            <Flex style={{ justifyContent: "start", alignItems: "center", gap: "0.2em", marginTop: "0.35em" }}>
+                <SuitcaseIcon enabled={true} size="12" />
+                <Text variant="text-sm/normal">Work Guild</Text>
+            </Flex>
+        );
+    }),
+
     start() {
         setupContextMenuPatches();
         addDecorator("work-mode", props =>
@@ -227,7 +295,6 @@ export default definePlugin({
                 {isWorkModeId(props.channel.id) ? <WorkModeIcon text="Work User" /> : null}
             </ErrorBoundary>
         );
-        // addBadge(badge);
     },
 
     stop() {

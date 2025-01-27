@@ -5,3 +5,20 @@
 :is(.vc-work-toolbox-btn:hover, .vc-work-toolbox-btn[class*="selected"]) svg {
     color: var(--interactive-active);
 }
+
+.vc-icon-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: var(--white);
+    background-color: var(--background-accent);
+
+    width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    box-sizing: border-box;
+    min-width: 16px;
+    min-height: 16px;
+    text-align: center;
+}
