@@ -4,28 +4,20 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import "./styles.css";
+
+import { addMemberListDecorator, removeMemberListDecorator } from "@api/MemberListDecorators";
+import ErrorBoundary from "@components/ErrorBoundary";
+import { Flex } from "@components/Flex";
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
-
-import { removeContextMenuBindings, setupContextMenuPatches } from "./contextMenu";
-import { settings, toggleWorkMode, isEnabled, isNotWorkModeId, isWorkModeId } from "./settings";
-import { isPinned } from "plugins/pinDms/data";
-import { forceUpdate } from "plugins/pinDms";
+import { React, Text } from "@webpack/common";
 import { Channel, Guild, User } from "discord-types/general";
-import ErrorBoundary from "@components/ErrorBoundary";
-import { SuitcaseIcon, WorkModeIcon, WorkModeToggle } from "./components/WorkModeToggle";
-import './styles.css';
-import { addDecorator, removeDecorator } from "@api/MemberListDecorators";
-import { React, Text, Tooltip } from "@webpack/common";
-import { Flex } from "@components/Flex";
+import { isPinned } from "plugins/pinDms/data";
 
-export let guildBarForceUpdate: () => void = () => { };
-export let guildAvatarForceUpdate: () => void = () => { };
-export let _forceUpdate = () => {
-    guildBarForceUpdate();
-    guildAvatarForceUpdate();
-    forceUpdate();
-};
+import { SuitcaseIcon, WorkModeIcon, WorkModeToggle } from "./components/WorkModeToggle";
+import { removeContextMenuBindings, setupContextMenuPatches } from "./contextMenu";
+import { isEnabled, isNotWorkModeId, isWorkModeId, settings, toggleWorkMode, useWorkMode } from "./settings";
 
 interface GuildRoot {
     type: "guild";
@@ -51,59 +43,30 @@ export default definePlugin({
     name: "WorkMode",
     authors: [Devs.Aria],
     description: "A work mode plugin for Discord",
-    dependencies: ["PinDMs"],
     settings,
 
     patches: [
         {
             find: "(\"guildsnav\")",
             replacement: [
-                // {
-                //     match: /case .+?\.GUILD:return/,
-                //     replace: "$& $self.isEnabled() && $self.isNotWorkModeId(arguments[0].id) ? null : "
-                // },
-                // {
-                //     match: /case .+?\.FOLDER:return/,
-                //     replace: "$& $self.isEnabled() && $self.shouldRenderFolder(arguments[0]) ? null : "
-                // },
                 // probably a better way to do this
                 {
                     match: /(?<=\i=)\i\.getRoots\(\)/,
                     replace: "$self.filterRoots($&)"
                 },
-                // {
-                //     match: /\i\.\i\.getGuildsTree\(\)/,
-                //     replace: "$self.filterGuildsTree($&)"
-                // },
                 {
                     match: /(?<=function \i\(\i\){).{1,300}GuildsBar/,
-                    replace: "let forceUpdate = Vencord.Util.useForceUpdater();$self._guildBarForceUpdate=forceUpdate;$&"
+                    replace: "$self.useWorkMode();$&"
                 }
             ]
         },
-        // {
-        //     find: ".sidebarListRounded",
-        //     replacement: {
-        //         match: /(?<=function \i\(\i\){).{1,50}hideSidebar/,
-        //         replace: "let forceUpdate = Vencord.Util.useForceUpdater();$self._guildBarForceUpdate=forceUpdate;$&"
-        //     }
-        // },
         {
             find: ".privateChannelsHeaderContainer,",
-            replacement: [
-                // {
-                //     match: /getPrivateChannelIds\(\)/,
-                //     replace: "$&.filter($self.filterPrivateChannelIds.bind($self))"
-                // },
-                {
-                    match: /(?<=\i=)\i\.\i\.getMutablePrivateChannels\(\)/,
-                    replace: "$self.filterMutablePrivateChannels($&)"
-                }
-                // {
-                //     match: /(?<=channels:\i,)privateChannelIds:(.+?)(?=,listRef:)/,
-                //     replace: "privateChannelIds:($1).filter($self.filterPrivateChannelIds.bind($self))"
-                // }
-            ]
+            replacement: {
+                match: /(?<=\i=)\i\.\i\.getMutablePrivateChannels\(\)/,
+                replace: "$self.filterMutablePrivateChannels($&)"
+            }
+
         },
         // fix new stub
         {
@@ -136,31 +99,32 @@ export default definePlugin({
                 },
                 {
                     match: /(?<=function\(\i\){).{1,100}guildNode/,
-                    replace: "let forceUpdate = Vencord.Util.useForceUpdater();$self._guildAvatarForceUpdate=forceUpdate;$&"
+                    replace: "$self.useWorkMode();$&"
                 }
             ]
         },
+
+        // stolen from MemberCount
         {
             find: ".invitesDisabledTooltip",
             replacement: {
                 match: /#{intl::VIEW_AS_ROLES_MENTIONS_WARNING}.{0,100}(?=])/,
                 replace: "$&,$self.renderTooltip(arguments[0].guild)"
             }
-        }
+        },
+        {
+            find: ".FRIENDS},\"friends\"",
+            replacement: {
+                match: /let{showLibrary:\i,/,
+                replace: "$self.useWorkMode();$&"
+            }
+        },
     ],
 
-    _forceUpdate,
+    useWorkMode,
     isEnabled,
     isWorkModeId,
     isNotWorkModeId,
-
-    set _guildBarForceUpdate(v: any) {
-        this.guildBarForceUpdate = guildBarForceUpdate = v;
-    },
-
-    set _guildAvatarForceUpdate(v: any) {
-        this.guildAvatarForceUpdate = guildAvatarForceUpdate = v;
-    },
 
     toolboxActions: {
         "Work Mode Toggle"() {
@@ -255,26 +219,6 @@ export default definePlugin({
                 <SuitcaseIcon enabled={true} size="12" />
             </div>
         );
-
-        // if (!original)
-        //     return (
-        //         <SuitcaseIcon enabled={false} size="12" />
-        //     );
-
-        // const OriginalIcon = (original as any)?.props.icon;
-
-        // function Icon(props: any) {
-        //     return (
-        //         <React.Fragment>
-        //             <OriginalIcon {...props} />
-        //             <SuitcaseIcon enabled={false} size="24" tooltipProps={props} />
-        //         </React.Fragment>
-        //     );
-        // }
-
-        // original.props.icon = Icon;
-
-        // return original;
     },
 
     renderTooltip: ErrorBoundary.wrap((guild: Guild) => {
@@ -290,7 +234,7 @@ export default definePlugin({
 
     start() {
         setupContextMenuPatches();
-        addDecorator("work-mode", props =>
+        addMemberListDecorator("work-mode", props =>
             <ErrorBoundary noop>
                 {isWorkModeId(props.channel.id) ? <WorkModeIcon text="Work User" /> : null}
             </ErrorBoundary>
@@ -299,6 +243,6 @@ export default definePlugin({
 
     stop() {
         removeContextMenuBindings();
-        removeDecorator("work-mode");
+        removeMemberListDecorator("work-mode");
     }
 });

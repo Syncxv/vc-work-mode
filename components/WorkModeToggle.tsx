@@ -1,7 +1,14 @@
+/*
+ * Vencord, a Discord client mod
+ * Copyright (c) 2025 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { LazyComponent } from "@utils/lazyReact";
 import { filters, find } from "@webpack";
-import { settings, toggleWorkMode } from "../settings";
 import { Tooltip } from "@webpack/common";
+
+import { settings, toggleWorkMode } from "../settings";
 
 
 const HeaderBarIcon = LazyComponent(() => {
@@ -31,7 +38,7 @@ export function WorkModeIcon({ text, size }: { text: string; size?: string; }) {
     return (
         <div style={{ marginLeft: "4px" }}>
             <Tooltip text={text}>
-                {(props) => (
+                {props => (
                     <SuitcaseIcon enabled={false} size={size ?? "20"} tooltipProps={props} />
                 )}
             </Tooltip>

@@ -6,7 +6,6 @@
 
 import { definePluginSettings } from "@api/Settings";
 import { OptionType } from "@utils/types";
-import { _forceUpdate } from ".";
 
 export const settings = definePluginSettings({
     workModeEnabled: {
@@ -14,7 +13,6 @@ export const settings = definePluginSettings({
         name: "Enable Work Mode",
         description: "Enable work mode",
         defaultValue: false,
-        onChange: () => _forceUpdate()
     },
 
     keepPinnedDms: {
@@ -22,7 +20,6 @@ export const settings = definePluginSettings({
         name: "Keep Pinned DMs",
         description: "Keep pinned DMs in the dms list",
         defaultValue: false,
-        onChange: () => _forceUpdate()
     },
 
     workIds: {
@@ -33,10 +30,14 @@ export const settings = definePluginSettings({
     },
 });
 
+export function useWorkMode() {
+    settings.use(["workModeEnabled", "workIds", "keepPinnedDms"]);
+}
+
+
 export function isEnabled() {
     return settings.store.workModeEnabled;
 }
-
 
 export function isWorkModeId(id: string) {
     return settings.store.workIds?.split(",").includes(id) ?? false;
@@ -49,7 +50,6 @@ export function isNotWorkModeId(id: string) {
 
 export function toggleWorkMode() {
     settings.store.workModeEnabled = !settings.store.workModeEnabled;
-    _forceUpdate();
 }
 
 export function addToWorkIds(id: string) {
@@ -57,12 +57,10 @@ export function addToWorkIds(id: string) {
     items.push(id);
 
     settings.store.workIds = items.join(",");
-    _forceUpdate();
 }
 
 
 export function removeFromWorkIds(id: string) {
     const items = settings.store.workIds?.split(",") || [];
     settings.store.workIds = items.filter(i => i !== id).join(",");
-    _forceUpdate();
 }
