@@ -17,7 +17,7 @@ import { isPinned } from "plugins/pinDms/data";
 
 import { SuitcaseIcon, WorkModeIcon, WorkModeToggle } from "./components/WorkModeToggle";
 import { removeContextMenuBindings, setupContextMenuPatches } from "./contextMenu";
-import { isEnabled, isNotWorkModeId, isWorkModeId, settings, toggleWorkMode, useWorkMode } from "./settings";
+import { getWorkIds, isEnabled, isNotWorkModeId, isWorkModeId, settings, toggleWorkMode, useWorkMode } from "./settings";
 
 interface GuildRoot {
     type: "guild";
@@ -152,10 +152,16 @@ export default definePlugin({
         },
         {
             find: "#{intl::INCOMING_CALL}",
-            replacement: {
-                match: /(?<=function \i\(\)\{).{1,150}getTotalMentionCount/,
-                replace: "$self.useWorkMode();$&"
-            }
+            replacement: [
+                {
+                    match: /(?<=function \i\(\)\{).{1,150}getTotalMentionCount/,
+                    replace: "$self.useWorkMode();$&"
+                },
+                {
+                    match: /(?<=\i=)(\i\..{1,10})\.hasAnyUnread\(\)/,
+                    replace: "$self.isEnabled() ? $self.hasWorkUnread($1) : $&"
+                }
+            ]
         }
     ],
 
@@ -163,6 +169,7 @@ export default definePlugin({
     isEnabled,
     isWorkModeId,
     isNotWorkModeId,
+    getWorkIds,
 
     toolboxActions: {
         "Work Mode Toggle"() {
@@ -262,6 +269,10 @@ export default definePlugin({
         }
 
         return false;
+    },
+
+    hasWorkUnread(unreadStore: any) {
+        return unreadStore.getMutableUnreadGuilds().intersection(new Set(getWorkIds())).size > 0;
     },
 
     WrapUpperBadge(original?: { props: { icon: Function; }; }, id?: string) {

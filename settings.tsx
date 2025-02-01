@@ -39,6 +39,10 @@ export function isEnabled() {
     return settings.store.workModeEnabled;
 }
 
+export function getWorkIds() {
+    return settings.store.workIds?.split(",") || [];
+}
+
 export function isWorkModeId(id: string) {
     return settings.store.workIds?.split(",").includes(id) ?? false;
 }
