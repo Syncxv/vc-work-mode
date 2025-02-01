@@ -77,6 +77,14 @@ export default definePlugin({
                 }
             ]
         },
+        // fix new stub
+        {
+            find: ".getGuildFolders(),",
+            replacement: {
+                match: /(?<=items:\i),isUnread:/,
+                replace: ".filter($self.filterGuildFolders.bind($self))$&"
+            }
+        },
         {
             find: ".privateChannelsHeaderContainer,",
             replacement: {
@@ -200,6 +208,10 @@ export default definePlugin({
         });
     },
 
+    filterGuildFolders(item: string | { folderId: string, guildIds: string[]; }) {
+        if (!this.isEnabled() || typeof item === "string") return true;
+        return item.guildIds?.some(id => this.isWorkModeId(id));
+    },
 
     shouldRenderFolder(arg: FolderRoot) {
         return arg?.children?.some(child => this.isWorkModeId(child.id));
