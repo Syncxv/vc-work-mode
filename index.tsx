@@ -39,6 +39,23 @@ interface FolderRoot {
 
 type SidebarRoot = GuildRoot | FolderRoot;
 
+export type UnreadObj = {
+    unread: boolean;
+    unreadByType: any;
+    unreadChannelId?: string;
+    lowImportanceMentionCount: number;
+    highImportanceMentionCount: number;
+    mentionCounts: {
+        [channel_id: string]: {
+            count: number;
+            isMentionLowImportance: boolean;
+        };
+    };
+    ncMentionCount: number;
+    sentinel: number;
+};
+
+
 export default definePlugin({
     name: "WorkMode",
     authors: [Devs.Aria],
@@ -118,6 +135,20 @@ export default definePlugin({
                 replace: "$self.useWorkMode();$&"
             }
         },
+        {
+            find: "GuildReadStateStore",
+            replacement: {
+                match: /getTotalMentionCount\(\i\){.{1,50}(\i)=\i\[(\i)\];/,
+                replace: "$&if(!$self.shouldIncrement($2, $1)) continue;"
+            }
+        },
+        {
+            find: "#{intl::INCOMING_CALL}",
+            replacement: {
+                match: /(?<=function \i\(\)\{).{1,150}getTotalMentionCount/,
+                replace: "$self.useWorkMode();$&"
+            }
+        }
     ],
 
     useWorkMode,
@@ -207,6 +238,18 @@ export default definePlugin({
         }
 
         return channelsCopy;
+    },
+
+    shouldIncrement(guildId: string, unread: UnreadObj) {
+        if (!this.isEnabled()) return true;
+
+        if (this.isWorkModeId(guildId)) return true;
+
+        for (const id in unread.mentionCounts) {
+            if (this.isWorkModeId(id)) return true;
+        }
+
+        return false;
     },
 
     WrapUpperBadge(original?: { props: { icon: Function; }; }, id?: string) {
