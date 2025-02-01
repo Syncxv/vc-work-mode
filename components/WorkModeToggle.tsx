@@ -24,12 +24,12 @@ export function SuitcaseIcon({ enabled, size = "24", tooltipProps = {} }: { enab
             height={size}
             viewBox="0 0 24 24"
             fill={enabled ? "currentColor" : "none"}
-            stroke="currentColor"
+            stroke={enabled ? "none" : "currentColor"}
             {...tooltipProps}
         >
             {enabled ?
                 <path fill="currentColor" d="M14 2a3 3 0 0 1 3 3v1h2a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3h2V5a3 3 0 0 1 3-3zm0 2h-4a1 1 0 0 0-1 1v1h6V5a1 1 0 0 0-1-1"></path>
-                : <path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zm5-2V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>}
+                : <path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zm5-2V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>}
         </svg>
     );
 }

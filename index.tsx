@@ -68,18 +68,17 @@ export default definePlugin({
             }
 
         },
-        // fix new stub
         {
-            find: ".getGuildFolders(),",
+            find: "getPrivateChannelsVersion());",
             replacement: {
-                match: /(?<=items:\i),isUnread:/,
-                replace: ".filter($self.filterGuildFolders.bind($self))$&"
+                match: /(?<=\i=\i)\.map/,
+                replace: ".filter($self.filterUnreadDms.bind($self)).map"
             }
         },
         {
             find: "\"NotificationTextUtils\"",
             replacement: {
-                match: /(?<=function \i\(\i,\i\,\i\){).{1,200}.ignoreSameUser/,
+                match: /(?<=function \i\(\i,\i,\i\){).{1,200}.ignoreSameUser/,
                 replace: "if($self.handleNotification(arguments[1], arguments[2])) return false; $&"
             }
         },
@@ -142,7 +141,7 @@ export default definePlugin({
 
         e.toolbar = [
             e.toolbar,
-            <ErrorBoundary noop={true}>
+            <ErrorBoundary key="work-mode-toggle" noop={true}>
                 <WorkModeToggle />
             </ErrorBoundary>,
         ];
@@ -181,18 +180,17 @@ export default definePlugin({
         return this.isNotWorkModeId(channel.getGuildId()) && this.isNotWorkModeId(channel.id);
     },
 
-    filterGuildFolders(item: string | { folderId: string, guildIds: string[]; }) {
-        if (!this.isEnabled() || typeof item === "string") return true;
-
-
-        return item.guildIds?.some(id => this.isWorkModeId(id));
-    },
-
     filterPrivateChannelIds(id: string) {
         if (!this.isEnabled()) return true;
         if (settings.store.keepPinnedDms && isPinned(id)) return true;
 
         return this.isWorkModeId(id);
+    },
+
+    filterUnreadDms(channel_id: string) {
+        if (!this.isEnabled()) return true;
+
+        return this.isWorkModeId(channel_id);
     },
 
     filterMutablePrivateChannels(channels: Record<string, Channel>) {
