@@ -18,42 +18,7 @@ import { isPinned } from "plugins/pinDms/data";
 import { SuitcaseIcon, WorkModeToggle, WorkUserIcon } from "./components/WorkModeToggle";
 import { removeContextMenuBindings, setupContextMenuPatches } from "./contextMenu";
 import { getWorkIds, isEnabled, isNotWorkModeId, isWorkModeId, settings, toggleWorkMode, useWorkMode } from "./settings";
-
-interface GuildRoot {
-    type: "guild";
-    id: string;
-    parentId: any;
-    unavailable: boolean;
-    children: GuildRoot[]; // probably. always empty
-}
-
-interface FolderRoot {
-    type: "folder";
-    id: number;
-    parentId: any;
-    name: string;
-    color: number;
-    expanded: boolean;
-    children: GuildRoot[];
-}
-
-type SidebarRoot = GuildRoot | FolderRoot;
-
-export type UnreadObj = {
-    unread: boolean;
-    unreadByType: any;
-    unreadChannelId?: string;
-    lowImportanceMentionCount: number;
-    highImportanceMentionCount: number;
-    mentionCounts: {
-        [channel_id: string]: {
-            count: number;
-            isMentionLowImportance: boolean;
-        };
-    };
-    ncMentionCount: number;
-    sentinel: number;
-};
+import type { NowPlayingCard, SidebarRoot, UnreadObj } from "./types";
 
 
 export default definePlugin({
@@ -280,13 +245,16 @@ export default definePlugin({
         return this.isWorkModeId(id);
     },
 
-    filterNowPlayingCards(card: { party: { id: string; }; }) {
+    filterNowPlayingCards(card: NowPlayingCard) {
         if (!this.isEnabled()) return true;
 
         const userId = card?.party?.id?.split("--")?.[1];
         if (!userId) return true;
 
-        return this.isWorkModeId(ChannelStore.getDMFromUserId(userId));
+        if (this.isWorkModeId(ChannelStore.getDMFromUserId(userId)))
+            return true;
+
+        return card?.party?.voiceChannels.some(vc => this.isWorkModeId(vc.guild.id));
     },
 
     filterFriendRows(rows: { userId: string; }[][]) {
