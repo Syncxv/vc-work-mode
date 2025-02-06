@@ -11,7 +11,7 @@ import ErrorBoundary from "@components/ErrorBoundary";
 import { Flex } from "@components/Flex";
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
-import { React, Text } from "@webpack/common";
+import { ChannelStore, React, Text } from "@webpack/common";
 import { Channel, Guild, User } from "discord-types/general";
 import { isPinned } from "plugins/pinDms/data";
 
@@ -87,10 +87,16 @@ export default definePlugin({
         },
         {
             find: ".privateChannelsHeaderContainer,",
-            replacement: {
-                match: /(?<=\i=)\i\.\i\.getMutablePrivateChannels\(\)/,
-                replace: "$self.filterMutablePrivateChannels($&)"
-            }
+            replacement: [
+                {
+                    match: /(?<=\i=)\i\.\i\.getMutablePrivateChannels\(\)/,
+                    replace: "$self.filterMutablePrivateChannels($&)"
+                },
+                {
+                    match: /(?<=channels:\w,)privateChannelIds:(\w(?:.+?)?)(?=,listRef:)/,
+                    replace: "privateChannelIds:($1).filter($self.filterPrivateChannelIds.bind($self))"
+                }
+            ]
 
         },
         {
@@ -162,7 +168,41 @@ export default definePlugin({
                     replace: "$self.isEnabled() ? $self.hasWorkUnread($1) : $&"
                 }
             ]
-        }
+        },
+        // {
+        //     find: "\"FriendsStore\"",
+        //     replacement: {
+        //         match: /filter\(\i,\i\){.{1,50}\.filter\((\i)=>{/,
+        //         replace: "$&if($self.filterFriends($1?.userId)) return false;"
+        //     }
+        // },
+        {
+            find: "\"NowPlayingViewStore\"",
+            replacement: {
+                match: /get nowPlayingCards\(\){return \i/,
+                replace: "$&.filter($self.filterNowPlayingCards.bind($self))"
+            }
+        },
+        // {
+        //     find: "\"PeoplePage\"",
+        //     replacement: {
+        //         match: /(?<=function.{1,10}{).{1,50}"PeoplePage"/,
+        //         replace: "$self.useWorkMode();$&"
+        //     }
+        // },
+        {
+            find: "\"PeopleList\"",
+            replacement: [
+                {
+                    match: /(?<=function.{1,20}\){).{1,100}FRIENDS_LIST/,
+                    replace: "$self.useWorkMode();$&"
+                },
+                {
+                    match: /rows:(\i),(?=renderRow)/,
+                    replace: "rows:$self.filterFriendRows($1),"
+                }
+            ]
+        },
     ],
 
     useWorkMode,
@@ -230,13 +270,6 @@ export default definePlugin({
         return this.isNotWorkModeId(channel.getGuildId()) && this.isNotWorkModeId(channel.id);
     },
 
-    filterPrivateChannelIds(id: string) {
-        if (!this.isEnabled()) return true;
-        if (settings.store.keepPinnedDms && isPinned(id)) return true;
-
-        return this.isWorkModeId(id);
-    },
-
     filterUnreadDms(channel_id: string) {
         if (!this.isEnabled()) return true;
 
@@ -249,7 +282,7 @@ export default definePlugin({
         const channelsCopy = { ...channels };
 
         for (const id in channelsCopy) {
-            if (!this.filterPrivateChannelIds(id)) {
+            if (!this.isWorkModeId(id)) {
                 if (settings.store.keepPinnedDms && isPinned(id)) continue;
 
                 delete channelsCopy[id];
@@ -257,6 +290,33 @@ export default definePlugin({
         }
 
         return channelsCopy;
+    },
+
+    filterPrivateChannelIds(id: string) {
+        if (!this.isEnabled()) return true;
+
+        return this.isWorkModeId(id);
+    },
+
+    filterFriends(userId: string) {
+        if (!this.isEnabled()) return false;
+
+        return this.isNotWorkModeId(ChannelStore.getDMFromUserId(userId));
+    },
+
+    filterNowPlayingCards(card: { party: { id: string; }; }) {
+        if (!this.isEnabled()) return true;
+
+        const userId = card?.party?.id?.split("--")?.[1];
+        if (!userId) return true;
+
+        return this.isWorkModeId(ChannelStore.getDMFromUserId(userId));
+    },
+
+    filterFriendRows(rows: { userId: string; }[][]) {
+        if (!this.isEnabled()) return rows;
+
+        return rows.map(row => row.filter(user => this.isWorkModeId(ChannelStore.getDMFromUserId(user.userId))));
     },
 
     shouldIncrement(guildId: string, unread: UnreadObj) {
