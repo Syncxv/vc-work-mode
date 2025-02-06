@@ -15,7 +15,7 @@ import { ChannelStore, React, Text } from "@webpack/common";
 import { Channel, Guild, User } from "discord-types/general";
 import { isPinned } from "plugins/pinDms/data";
 
-import { SuitcaseIcon, WorkModeIcon, WorkModeToggle } from "./components/WorkModeToggle";
+import { SuitcaseIcon, WorkModeToggle, WorkUserIcon } from "./components/WorkModeToggle";
 import { removeContextMenuBindings, setupContextMenuPatches } from "./contextMenu";
 import { getWorkIds, isEnabled, isNotWorkModeId, isWorkModeId, settings, toggleWorkMode, useWorkMode } from "./settings";
 
@@ -169,13 +169,6 @@ export default definePlugin({
                 }
             ]
         },
-        // {
-        //     find: "\"FriendsStore\"",
-        //     replacement: {
-        //         match: /filter\(\i,\i\){.{1,50}\.filter\((\i)=>{/,
-        //         replace: "$&if($self.filterFriends($1?.userId)) return false;"
-        //     }
-        // },
         {
             find: "\"NowPlayingViewStore\"",
             replacement: {
@@ -183,13 +176,6 @@ export default definePlugin({
                 replace: "$&.filter($self.filterNowPlayingCards.bind($self))"
             }
         },
-        // {
-        //     find: "\"PeoplePage\"",
-        //     replacement: {
-        //         match: /(?<=function.{1,10}{).{1,50}"PeoplePage"/,
-        //         replace: "$self.useWorkMode();$&"
-        //     }
-        // },
         {
             find: "\"PeopleList\"",
             replacement: [
@@ -251,17 +237,13 @@ export default definePlugin({
             if (clonedRoot.type === "guild")
                 return this.isWorkModeId(clonedRoot.id);
 
-            return this.shouldRenderFolder(clonedRoot);
+            return clonedRoot.children?.some(child => this.isWorkModeId(child.id));
         });
     },
 
     filterGuildFolders(item: string | { folderId: string, guildIds: string[]; }) {
         if (!this.isEnabled() || typeof item === "string") return true;
         return item.guildIds?.some(id => this.isWorkModeId(id));
-    },
-
-    shouldRenderFolder(arg: FolderRoot) {
-        return arg?.children?.some(child => this.isWorkModeId(child.id));
     },
 
     handleNotification(user: User, channel: Channel) {
@@ -298,12 +280,6 @@ export default definePlugin({
         return this.isWorkModeId(id);
     },
 
-    filterFriends(userId: string) {
-        if (!this.isEnabled()) return false;
-
-        return this.isNotWorkModeId(ChannelStore.getDMFromUserId(userId));
-    },
-
     filterNowPlayingCards(card: { party: { id: string; }; }) {
         if (!this.isEnabled()) return true;
 
@@ -331,8 +307,9 @@ export default definePlugin({
         return false;
     },
 
-    hasWorkUnread(unreadStore: any) {
-        return unreadStore.getMutableUnreadGuilds().intersection(new Set(getWorkIds())).size > 0;
+    hasWorkUnread(unreadStore: { getMutableUnreadGuilds: () => Set<string>; }) {
+        const workIds = new Set(getWorkIds());
+        return Array.from(unreadStore.getMutableUnreadGuilds()).some(id => workIds.has(id));
     },
 
     WrapUpperBadge(original?: { props: { icon: Function; }; }, id?: string) {
@@ -360,7 +337,7 @@ export default definePlugin({
         setupContextMenuPatches();
         addMemberListDecorator("work-mode", props =>
             <ErrorBoundary noop>
-                {isWorkModeId(props.channel.id) ? <WorkModeIcon text="Work User" /> : null}
+                {isWorkModeId(props.channel.id) ? <WorkUserIcon /> : null}
             </ErrorBoundary>
         );
     },

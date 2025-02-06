@@ -34,12 +34,12 @@ export function SuitcaseIcon({ enabled, size = "24", tooltipProps = {} }: { enab
     );
 }
 
-export function WorkModeIcon({ text, size }: { text: string; size?: string; }) {
+export function WorkUserIcon() {
     return (
         <div style={{ marginLeft: "4px" }}>
-            <Tooltip text={text}>
+            <Tooltip text="Work User">
                 {props => (
-                    <SuitcaseIcon enabled={false} size={size ?? "20"} tooltipProps={props} />
+                    <SuitcaseIcon enabled={false} size="20" tooltipProps={props} />
                 )}
             </Tooltip>
         </div>
