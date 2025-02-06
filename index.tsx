@@ -246,15 +246,14 @@ export default definePlugin({
     },
 
     filterNowPlayingCards(card: NowPlayingCard) {
-        if (!this.isEnabled()) return true;
+        if (!this.isEnabled() || !card.party) return true;
 
-        const userId = card?.party?.id?.split("--")?.[1];
-        if (!userId) return true;
+        const users = [...card.party?.partiedMembers ?? [], ...card.party?.priorityMembers.map(m => m.user) ?? []].filter(Boolean) as User[];
 
-        if (this.isWorkModeId(ChannelStore.getDMFromUserId(userId)))
+        if (users.some(user => this.isWorkModeId(ChannelStore.getDMFromUserId(user.id))))
             return true;
 
-        return card?.party?.voiceChannels.some(vc => this.isWorkModeId(vc.guild.id));
+        return card.party.voiceChannels?.some(vc => this.isWorkModeId(vc.guild.id));
     },
 
     filterFriendRows(rows: { userId: string; }[][]) {

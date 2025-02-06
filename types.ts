@@ -52,6 +52,12 @@ export interface Party {
     voiceChannels: VoiceChannel[];
     isSpotifyActivity: boolean;
     showPlayingMembers: boolean;
+    priorityMembers: {
+        user: User;
+        status: string;
+    }[];
+    partiedMembers: User[];
+    currentActivities: any[];
 }
 
 export interface VoiceChannel {
