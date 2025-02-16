@@ -156,6 +156,14 @@ export default definePlugin({
                 }
             ]
         },
+        {
+            find: "\"IncomingCallStore\"",
+            predicate: () => settings.store.blockNonWorkCalls,
+            replacement: {
+                match: /(?<=function .{1,5}\{).{1,50}ringing/,
+                replace: "if(!$self.handleCall(arguments[0])) return !1;$&"
+            }
+        }
     ],
 
     useWorkMode,
@@ -291,6 +299,12 @@ export default definePlugin({
                 <SuitcaseIcon enabled={true} size="12" />
             </div>
         );
+    },
+
+    handleCall({ channelId }: { channelId: string; }) {
+        if (!this.isEnabled()) return true;
+
+        return this.isWorkModeId(channelId);
     },
 
     renderTooltip: ErrorBoundary.wrap((guild: Guild) => {

@@ -19,7 +19,15 @@ export const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         name: "Keep Pinned DMs",
         description: "Keep pinned DMs in the dms list",
-        defaultValue: false,
+        default: false,
+    },
+
+    blockNonWorkCalls: {
+        type: OptionType.BOOLEAN,
+        name: "Block Non-Work Calls",
+        description: "Block calls from non-work users",
+        default: false,
+        restartNeeded: true,
     },
 
     workIds: {
