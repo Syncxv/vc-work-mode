@@ -11,6 +11,7 @@ import ErrorBoundary from "@components/ErrorBoundary";
 import { Flex } from "@components/Flex";
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
+import { findByPropsLazy } from "@webpack";
 import { ChannelStore, React, Text } from "@webpack/common";
 import { Channel, Guild, User } from "discord-types/general";
 import { isPinned } from "plugins/pinDms/data";
@@ -20,6 +21,7 @@ import { removeContextMenuBindings, setupContextMenuPatches } from "./contextMen
 import { getWorkIds, isEnabled, isNotWorkModeId, isWorkModeId, settings, toggleWorkMode, useWorkMode } from "./settings";
 import type { NowPlayingCard, SidebarRoot, UnreadObj } from "./types";
 
+const FriendStates = findByPropsLazy("PENDING_INCOMING");
 
 export default definePlugin({
     name: "WorkMode",
@@ -256,10 +258,12 @@ export default definePlugin({
         return card.party.voiceChannels?.some(vc => this.isWorkModeId(vc.guild.id));
     },
 
-    filterFriendRows(rows: { userId: string; }[][]) {
+    filterFriendRows(rows: { userId: string; type: number; }[][]) {
         if (!this.isEnabled()) return rows;
 
-        return rows.map(row => row.filter(user => this.isWorkModeId(ChannelStore.getDMFromUserId(user.userId))));
+        return rows.map(row => row.filter(user =>
+            user.type === FriendStates.PENDING_INCOMING || this.isWorkModeId(ChannelStore.getDMFromUserId(user.userId))
+        ));
     },
 
     shouldIncrement(guildId: string, unread: UnreadObj) {
