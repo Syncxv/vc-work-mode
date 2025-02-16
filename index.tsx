@@ -47,10 +47,16 @@ export default definePlugin({
         // fix new stub
         {
             find: ".getGuildFolders(),",
-            replacement: {
-                match: /(?<=items:\i),isUnread:/,
-                replace: ".filter($self.filterGuildFolders.bind($self))$&"
-            }
+            replacement: [
+                {
+                    match: /(?<=function.{1,6}{).{1,50}getGuildFolders/,
+                    replace: "$self.useWorkMode();$&"
+                },
+                {
+                    match: /(?<=items:\i),isUnread:/,
+                    replace: ".filter($self.filterGuildFolders.bind($self))$&"
+                }
+            ]
         },
         {
             find: ".privateChannelsHeaderContainer,",
@@ -217,7 +223,11 @@ export default definePlugin({
     },
 
     filterGuildFolders(item: string | { folderId: string, guildIds: string[]; }) {
-        if (!this.isEnabled() || typeof item === "string") return true;
+        if (!this.isEnabled()) return true;
+
+        if (typeof item === "string")
+            return this.isWorkModeId(item);
+
         return item.guildIds?.some(id => this.isWorkModeId(id));
     },
 
