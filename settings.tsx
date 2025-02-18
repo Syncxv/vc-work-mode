@@ -6,13 +6,23 @@
 
 import { definePluginSettings } from "@api/Settings";
 import { OptionType } from "@utils/types";
+import { FluxDispatcher } from "@webpack/common";
 
 export const settings = definePluginSettings({
     workModeEnabled: {
         type: OptionType.BOOLEAN,
         name: "Enable Work Mode",
         description: "Enable work mode",
-        defaultValue: false,
+        default: false,
+        onChange: () => FluxDispatcher.dispatch({ type: "WORKMODE_UPDATE" as any }),
+    },
+
+    workIds: {
+        type: OptionType.STRING,
+        name: "Work IDs",
+        description: "The IDs of the users you want to enable work mode for",
+        default: "",
+        onChange: () => FluxDispatcher.dispatch({ type: "WORKMODE_UPDATE" as any }),
     },
 
     keepPinnedDms: {
@@ -30,12 +40,6 @@ export const settings = definePluginSettings({
         restartNeeded: true,
     },
 
-    workIds: {
-        type: OptionType.STRING,
-        name: "Work IDs",
-        description: "The IDs of the users you want to enable work mode for",
-        defaultValue: "",
-    },
 });
 
 export function useWorkMode() {

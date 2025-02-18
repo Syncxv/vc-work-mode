@@ -13,6 +13,7 @@ import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
 import { findByPropsLazy } from "@webpack";
 import { ChannelStore, React, Text } from "@webpack/common";
+import { FluxStore } from "@webpack/types";
 import { Channel, Guild, User } from "discord-types/general";
 import { isPinned } from "plugins/pinDms/data";
 
@@ -22,6 +23,7 @@ import { getWorkIds, isEnabled, isNotWorkModeId, isWorkModeId, settings, toggleW
 import type { NowPlayingCard, SidebarRoot, UnreadObj } from "./types";
 
 const FriendStates = findByPropsLazy("PENDING_INCOMING");
+const UnreadStore = findByPropsLazy("getMutableUnreadGuilds") as FluxStore & { getMutableUnreadGuilds: () => Set<string>; };
 
 export default definePlugin({
     name: "WorkMode",
@@ -124,21 +126,18 @@ export default definePlugin({
         },
         {
             find: "GuildReadStateStore",
-            replacement: {
-                match: /getTotalMentionCount\(\i\){.{1,50}(\i)=\i\[(\i)\];/,
-                replace: "$&if(!$self.shouldIncrement($2, $1)) continue;"
-            }
-        },
-        {
-            find: "#{intl::INCOMING_CALL}",
             replacement: [
                 {
-                    match: /(?<=function \i\(\)\{).{1,150}getTotalMentionCount/,
-                    replace: "$self.useWorkMode();$&"
+                    match: /getTotalMentionCount\(\i\){.{1,50}(\i)=\i\[(\i)\];/,
+                    replace: "$&if(!$self.shouldIncrement($2, $1)) continue;"
                 },
                 {
-                    match: /(?<=\i=)(\i\..{1,10})\.hasAnyUnread\(\)/,
-                    replace: "$self.isEnabled() ? $self.hasWorkUnread($1) : $&"
+                    match: /(?<=hasAnyUnread\(\){)return/,
+                    replace: "return $self.isEnabled() ? $self.hasAnyWorkUnread() : "
+                },
+                {
+                    match: /CONNECTION_OPEN:\i,/,
+                    replace: "WORKMODE_UPDATE: () => {},$&"
                 }
             ]
         },
@@ -177,6 +176,7 @@ export default definePlugin({
     isWorkModeId,
     isNotWorkModeId,
     getWorkIds,
+    UnreadStore,
 
     toolboxActions: {
         "Work Mode Toggle"() {
@@ -296,9 +296,9 @@ export default definePlugin({
         return false;
     },
 
-    hasWorkUnread(unreadStore: { getMutableUnreadGuilds: () => Set<string>; }) {
+    hasAnyWorkUnread() {
         const workIds = new Set(getWorkIds());
-        return Array.from(unreadStore.getMutableUnreadGuilds()).some(id => workIds.has(id));
+        return Array.from(UnreadStore.getMutableUnreadGuilds()).some(id => workIds.has(id));
     },
 
     WrapUpperBadge(original?: { props: { icon: Function; }; }, id?: string) {
