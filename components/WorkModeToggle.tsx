@@ -4,17 +4,13 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { LazyComponent } from "@utils/lazyReact";
-import { filters, find } from "@webpack";
+import { findComponentByCodeLazy } from "@webpack";
 import { Tooltip } from "@webpack/common";
 
 import { settings, toggleWorkMode } from "../settings";
 
 
-const HeaderBarIcon = LazyComponent(() => {
-    const filter = filters.byCode(".HEADER_BAR_BADGE");
-    return find(m => m.Icon && filter(m.Icon)).Icon;
-});
+const HeaderBarIcon = findComponentByCodeLazy(".HEADER_BAR_BADGE_TOP:", '.iconBadge,"top"');
 
 export function SuitcaseIcon({ enabled, size = "24", tooltipProps = {} }: { enabled?: boolean; size?: string, tooltipProps?: any; }) {
     return (
