@@ -128,8 +128,8 @@ export default definePlugin({
             find: "GuildReadStateStore",
             replacement: [
                 {
-                    match: /getTotalMentionCount\(\i\){.{1,50}(\i)=\i\[(\i)\];/,
-                    replace: "$&if(!$self.shouldIncrement($2, $1)) continue;"
+                    match: /(?<=getTotalMentionCount\(\i\){)/,
+                    replace: "if ($self.isEnabled()) return $self.getTotalWorkMentionCount.bind(this)();"
                 },
                 {
                     match: /(?<=hasAnyUnread\(\){)return/,
@@ -284,16 +284,27 @@ export default definePlugin({
         ));
     },
 
-    shouldIncrement(guildId: string, unread: UnreadObj) {
-        if (!this.isEnabled()) return true;
+    getTotalWorkMentionCount(skipDms?: boolean) {
+        let t = 0;
+        const unreads = this.getMutableGuildStates() as Record<string, UnreadObj>;
 
-        if (this.isWorkModeId(guildId)) return true;
+        for (const guild_id in unreads) {
+            const unread = unreads[guild_id];
+            if (skipDms && guild_id === "null")
+                continue;
 
-        for (const id in unread.mentionCounts) {
-            if (this.isWorkModeId(id)) return true;
+            if (guild_id !== "null" && !isWorkModeId(guild_id))
+                continue;
+
+            for (const user_id in unread.mentionCounts) {
+                if (!isWorkModeId(user_id))
+                    continue;
+
+                t++;
+            }
         }
 
-        return false;
+        return t;
     },
 
     hasAnyWorkUnread() {
