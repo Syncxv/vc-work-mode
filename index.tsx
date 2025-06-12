@@ -343,7 +343,7 @@ export default definePlugin({
         setupContextMenuPatches();
         addMemberListDecorator("work-mode", props =>
             <ErrorBoundary noop>
-                {isWorkModeId(props.channel.id) ? <WorkUserIcon /> : null}
+                {isWorkModeId(ChannelStore.getDMFromUserId(props.user.id)) ? <WorkUserIcon /> : null}
             </ErrorBoundary>
         );
     },
